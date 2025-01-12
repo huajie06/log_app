@@ -71,3 +71,6 @@ tramp
 
 # Emacs backup directory
 backup/
+
+# some my db files
+*.db
