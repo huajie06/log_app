@@ -1,0 +1,6 @@
+DBManager: 2025/01/12 20:26:47 db_v2.go:34: Database connection successfully opened
+DBManager: 2025/01/12 20:26:47 db_v2.go:52: DBPut: Bucket=ExampleBucket, Key=Key1
+DBManager: 2025/01/12 20:26:47 db_v2.go:76: DBPut completed successfully
+DBManager: 2025/01/12 20:26:47 db_v2.go:84: DBGet: Bucket=ExampleBucket, Key=Key1
+DBManager: 2025/01/12 20:26:47 db_v2.go:119: DBGet completed successfully: Value=Value1
+DBManager: 2025/01/12 20:26:47 db_v2.go:45: Database connection successfully closed

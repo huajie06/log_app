@@ -1,0 +1,4 @@
+ERROR: 2025/01/12 20:04:03 main.go:35: something went wrong in doSomething
+ERROR: 2025/01/12 20:04:03 main.go:39: another error occurred in doAnotherThing
+ERROR: 2025/01/12 20:05:08 /home/hj/apps/log_app/cmd/logger/main.go:35: something went wrong in doSomething
+ERROR: 2025/01/12 20:05:08 /home/hj/apps/log_app/cmd/logger/main.go:39: another error occurred in doAnotherThing
