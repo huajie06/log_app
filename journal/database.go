@@ -114,3 +114,89 @@ func (m *DBManager) DBget(ctx context.Context, BucketName, Key string) (string, 
 		return res.value, res.err
 	}
 }
+
+func (m *DBManager) DBgetBucketSize(ctx context.Context, BucketName string) (int, error) {
+	m.logger.Printf("DBgetBucketSize: Bucket=%s", BucketName)
+
+	done := make(chan struct {
+		value int
+		err   error
+	})
+
+	go func() {
+		var bucketSize int
+		err := m.db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(BucketName))
+			c := b.Cursor()
+			for k, _ := c.First(); k != nil; k, _ = c.Next() {
+				bucketSize++
+			}
+			return nil
+		})
+		if err != nil {
+			m.logger.Printf("bold view error: %v", err)
+		} else {
+			m.logger.Println("DBgetBucketSize sucessful.")
+		}
+		done <- struct {
+			value int
+			err   error
+		}{bucketSize, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		m.logger.Println("ctx done!")
+		return 0, ctx.Err()
+	case res := <-done:
+		if res.err != nil {
+			m.logger.Printf("DBgetBucketSize error: %v", res.err)
+		} else {
+			m.logger.Println("DBgetBucketSize successful.")
+		}
+		return res.value, res.err
+	}
+}
+
+func (m *DBManager) DBgetListofBucket(ctx context.Context) (string, error) {
+	m.logger.Println("Running DBgetListofBucket...")
+
+	done := make(chan struct {
+		value string
+		err   error
+	})
+
+	go func() {
+		var result string
+		err := m.db.View(func(tx *bolt.Tx) error {
+			tx.ForEach(func(name []byte, b *bolt.Bucket) error {
+				result += string(name) + "\n"
+				return nil
+			})
+			return nil
+		})
+		if err != nil {
+			m.logger.Println("db view successful")
+		} else {
+			m.logger.Printf("db view error: %v", err)
+		}
+		done <- struct {
+			value string
+			err   error
+		}{result, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		m.logger.Println("ctx timeout or cancel")
+		return "", ctx.Err()
+	case res := <-done:
+		if res.err != nil {
+			m.logger.Printf("DBgetListofBucket error: %v", res.err)
+		} else {
+			m.logger.Println("DBgetListofBucket successful")
+		}
+		return res.value, res.err
+	}
+
+}
