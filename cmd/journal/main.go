@@ -1,11 +1,7 @@
 package main
 
-import (
-	"fmt"
-	"log_app/recap"
-)
+import "fmt"
 
 func main() {
-	recap.Recap01()
 	fmt.Println("hello world")
 }

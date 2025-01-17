@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"log_app/data"
+	"os"
 	"time"
 )
 
@@ -20,8 +21,12 @@ func main() {
 	// data.DBLoopBucket("test_file.db")
 
 	fmt.Println("========= print all data=================")
-	test3()
-
+	// test3()
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Println(err)
+	}
+	fmt.Println("current dir is:", dir)
 }
 
 func test3() {
