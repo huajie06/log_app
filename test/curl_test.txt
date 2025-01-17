@@ -1,0 +1,9 @@
+curl -X POST http://localhost:8080/log_today \
+-H "Content-Type: application/json" \
+-d '{
+    "eventType": "read",
+    "eventDate": "2024_1231",
+    "eventTime": "afternoon",
+    "eventContent": "some long reading task completed",
+    "logTimestamp": "2025_1231_000000"
+}'
