@@ -1,3 +1,7 @@
+# some testing data format
+*.csv
+*.log
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

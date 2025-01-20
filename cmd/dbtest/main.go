@@ -1,91 +1,274 @@
 package main
 
 import (
-	"context"
+	"encoding/csv"
 	"fmt"
-	"log"
-	"log_app/data"
+	"log_app/journal"
 	"os"
+	"strings"
 	"time"
+
+	bolt "go.etcd.io/bbolt"
 )
 
+type dbConn struct {
+	dbPath  string
+	mode    os.FileMode
+	options *bolt.Options
+}
+
+func newConn(dbPath string) dbConn {
+	return dbConn{
+		dbPath:  dbPath,
+		mode:    0600,
+		options: &bolt.Options{Timeout: 1 * time.Second},
+	}
+}
+
+func openDB(conn dbConn) (*bolt.DB, error) {
+	db, err := bolt.Open(conn.dbPath, conn.mode, conn.options)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
 func main() {
-	// test1()
+	dpath := "/home/hj/apps/log_app/cmd/journal/journal_event.db"
+	defaultConn := newConn(dpath)
 
-	// fmt.Println("======================================")
-	// fmt.Println("=========== test2 below================")
-	// fmt.Println("======================================")
-	// test2()
-
-	// fmt.Println("======================================")
-	// data.DBLoopBucket("test_file.db")
-
-	fmt.Println("========= print all data=================")
-	// test3()
-	dir, err := os.Getwd()
+	db, err := openDB(defaultConn)
 	if err != nil {
-		log.Println(err)
+		panic(err)
 	}
-	fmt.Println("current dir is:", dir)
+
+	getDBbucket(db)
+
+	getDBBucketSize(db, "event-log")
+
+	getDBBucketKeys(db, "event-log")
+
+	getDBBucketValue(db, "event-log")
+
+	WriteBucketToCSV(db, "event-log", "event-log.csv")
 }
 
-func test3() {
-	// data.DBLoopBucket("/home/hj/apps/log_app/cmd/web/app.db")
-	data.DBPrintAll("/home/hj/apps/log_app/cmd/web/app.db")
+func getDBbucket(db *bolt.DB) {
 
+	done := make(chan struct {
+		value string
+		err   error
+	})
+
+	go func() {
+		var result string
+		err := db.View(func(tx *bolt.Tx) error {
+			tx.ForEach(func(name []byte, b *bolt.Bucket) error {
+				result += string(name) + "\n"
+				return nil
+			})
+			return nil
+		})
+
+		done <- struct {
+			value string
+			err   error
+		}{result, err}
+	}()
+
+	res := <-done
+
+	if res.err != nil {
+		panic(res.err)
+	}
+
+	fmt.Println(res.value)
 }
 
-func test2() {
-	dbManager, err := data.NewDBManager("test_file.db")
-	if err != nil {
-		log.Fatalf("Error initializing DBManager: %v", err)
-	}
-	defer dbManager.Close()
+func getDBBucketSize(db *bolt.DB, bucketName string) {
+	done := make(chan struct {
+		value int
+		err   error
+	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
+	go func() {
+		var bucketSize int
+		err := db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(bucketName))
+			c := b.Cursor()
+			for k, _ := c.First(); k != nil; k, _ = c.Next() {
+				bucketSize++
+			}
+			return nil
+		})
+		done <- struct {
+			value int
+			err   error
+		}{bucketSize, err}
+	}()
 
-	// Insert key-value pair
-	if err := dbManager.DBPut(ctx, "ExampleBucket", "Key1", "Value1"); err != nil {
-		log.Printf("Error putting key-value pair: %v", err)
+	res := <-done
+	if res.err != nil {
+		panic(res.err)
 	} else {
-		fmt.Println("Key-Value pair successfully inserted")
-	}
-
-	// Retrieve the value for a key
-	value, err := dbManager.DBGet(ctx, "ExampleBucket", "Key1")
-	if err != nil {
-		log.Printf("Error getting key-value pair: %v", err)
-	} else {
-		fmt.Printf("Retrieved value: %s\n", value)
+		fmt.Printf("database bucket: %s, has size: %v\n", bucketName, res.value)
 	}
 }
 
-func test1() {
-	path := "test_file.db"
-	// data.DBinit(path)
+func getDBBucketKeys(db *bolt.DB, bucketName string) {
+	done := make(chan struct {
+		value string
+		err   error
+	})
 
-	eventType := "read"
-	eventDate := "2024_1231"
-	eventTime := "afternoon"
-	eventContent := "some long reading task completed"
-	logTimestamp := "2025_1231_000000"
+	go func() {
+		var keyResult string
+		err := db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(bucketName))
+			c := b.Cursor()
+			for k, _ := c.First(); k != nil; k, _ = c.Next() {
+				keyResult += string(k) + journal.FiledSeparator + "\n"
+			}
+			return nil
+		})
+		done <- struct {
+			value string
+			err   error
+		}{keyResult, err}
+	}()
 
-	key := eventType + "-" + logTimestamp
-	value := eventTime + "-" + eventContent
-	data.DBStore(path, eventDate, key, value)
+	res := <-done
+	if res.err != nil {
+		panic(res.err)
+	} else {
+		fmt.Printf("database bucket: %s, has keys:\n-------------------------------\n%v\n", bucketName, res.value)
+	}
+}
 
-	eventDate = "2024_1230"
-	data.DBStore(path, eventDate, key, value)
+func getDBBucketValue(db *bolt.DB, bucketName string) {
+	done := make(chan struct {
+		value string
+		err   error
+	})
 
-	eventDate = "2025_1230"
-	data.DBStore(path, eventDate, key, value)
+	go func() {
+		var keyResult string
+		err := db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(bucketName))
+			c := b.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				keyResult += string(k) + journal.EntrySeparator + string(v) + journal.UnitSeparator
+			}
+			return nil
+		})
+		done <- struct {
+			value string
+			err   error
+		}{strings.Trim(keyResult, journal.UnitSeparator), err}
+	}()
 
-	fmt.Println("------all bucket-------------")
-	data.DBLoopBucket(path)
+	res := <-done
+	if res.err != nil {
+		panic(res.err)
+	} else {
+		fmt.Printf("database bucket: %s, has values\n", bucketName)
+		printDBbucket(res.value)
+		procResult := returnDBbucket(res.value)
+		fmt.Println("--------------------")
+		for _, v := range procResult {
+			fmt.Printf("%+v\n", v)
+		}
 
-	fmt.Println("------ lookup something -------------")
+	}
+}
 
-	data.DBRetrieve(path, "2025_1230", key)
+func printDBbucket(data string) {
+	eachEntry := strings.Split(data, journal.UnitSeparator)
+	for _, v := range eachEntry {
+		// if v != "" {
+		keyPairValue := strings.Split(v, journal.EntrySeparator)
+
+		r1 := journal.EventLog{LogTimestamp: keyPairValue[0],
+			EventType:    keyPairValue[1],
+			EventDate:    keyPairValue[2],
+			EventTime:    keyPairValue[3],
+			EventContent: keyPairValue[4]}
+		fmt.Printf("%+v\n", r1)
+	}
+}
+
+func returnDBbucket(data string) []journal.EventLog {
+	eachEntry := strings.Split(data, journal.UnitSeparator)
+
+	var result []journal.EventLog
+
+	for _, v := range eachEntry {
+		keyPairValue := strings.Split(v, journal.EntrySeparator)
+
+		r1 := journal.EventLog{LogTimestamp: keyPairValue[0],
+			EventType:    keyPairValue[1],
+			EventDate:    keyPairValue[2],
+			EventTime:    keyPairValue[3],
+			EventContent: keyPairValue[4]}
+
+		result = append(result, r1)
+	}
+	return result
+}
+
+func WriteBucketToCSV(db *bolt.DB, bucketName string, csvfile string) error {
+	done := make(chan struct {
+		value string
+		err   error
+	})
+
+	go func() {
+		var keyResult string
+		err := db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(bucketName))
+			c := b.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				keyResult += string(k) + journal.EntrySeparator + string(v) + journal.UnitSeparator
+			}
+			return nil
+		})
+		done <- struct {
+			value string
+			err   error
+		}{strings.Trim(keyResult, journal.UnitSeparator), err}
+	}()
+
+	res := <-done
+	if res.err != nil {
+		fmt.Println("fail to conver to csv")
+		return res.err
+	} else {
+
+		procResult := returnDBbucket(res.value)
+		file, err := os.Create(csvfile)
+		if err != nil {
+			fmt.Println("csv creation fail")
+			return err
+		}
+		defer file.Close()
+
+		writer := csv.NewWriter(file)
+		defer writer.Flush()
+
+		headers := []string{"LogTimestamp", "EventType", "EventDate", "EventTime", "EventContent"}
+		writer.Write(headers)
+
+		for _, v := range procResult {
+			row := []string{
+				v.LogTimestamp,
+				v.EventType,
+				v.EventDate,
+				v.EventTime,
+				v.EventContent,
+			}
+			writer.Write(row)
+		}
+		return nil
+	}
 
 }
