@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"log_app/journal"
 	"os"
@@ -45,13 +46,70 @@ func main() {
 
 	getDBbucket(db)
 
-	getDBBucketSize(db, "event-log")
+	// getDBBucketSize(db, "event-log")
 
 	getDBBucketKeys(db, "event-log")
 
+	// viewDBBucketValueRaw(db, "event-log")
+
 	getDBBucketValue(db, "event-log")
 
-	WriteBucketToCSV(db, "event-log", "event-log.csv")
+	// WriteBucketToCSV(db, "event-log", "event-log.csv")
+
+	WriteBucketToJSON(db, "event-log", "event-log.json")
+}
+
+func WriteBucketToJSON(db *bolt.DB, bucketName string, outfile string) {
+	done := make(chan struct {
+		value string
+		err   error
+	})
+
+	go func() {
+		var keyResult string
+		err := db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(bucketName))
+			c := b.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				keyResult += string(k) + journal.FiledSeparator + string(v) + journal.UnitSeparator
+			}
+			return nil
+		})
+		done <- struct {
+			value string
+			err   error
+		}{strings.Trim(keyResult, journal.UnitSeparator), err}
+	}()
+
+	res := <-done
+	if res.err != nil {
+		fmt.Println("not return results from db")
+		panic(res.err)
+	} else {
+		fmt.Printf("database bucket: %s, has values\n", bucketName)
+
+		procResult := returnDBbucket(res.value)
+		fmt.Println("--------------------")
+		// for _, v := range procResult {
+		// 	fmt.Printf("%+v\n", v)
+		// }
+
+		file, err := os.Create(outfile)
+		if err != nil {
+			fmt.Println("Error creating file:", err)
+			return
+		}
+		defer file.Close() // Ensure the file is closed when the function exits
+
+		// Convert to JSON and write to the file
+		encoder := json.NewEncoder(file)
+		encoder.SetIndent("", "  ") // Pretty print with indentation
+
+		if err := encoder.Encode(procResult); err != nil {
+			fmt.Println("Error encoding JSON:", err)
+			return
+		}
+	}
 }
 
 func getDBbucket(db *bolt.DB) {
@@ -146,6 +204,43 @@ func getDBBucketKeys(db *bolt.DB, bucketName string) {
 	}
 }
 
+func viewDBBucketValueRaw(db *bolt.DB, bucketName string) {
+	done := make(chan struct {
+		value string
+		err   error
+	})
+
+	go func() {
+		var keyResult string
+		err := db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(bucketName))
+			c := b.Cursor()
+			for k, v := c.First(); k != nil; k, v = c.Next() {
+				keyResult += string(k) + ":" + string(v) + journal.UnitSeparator
+			}
+			return nil
+		})
+		done <- struct {
+			value string
+			err   error
+		}{strings.Trim(keyResult, journal.UnitSeparator), err}
+	}()
+
+	res := <-done
+	if res.err != nil {
+		panic(res.err)
+	} else {
+		fmt.Printf("database bucket: %s, has values\n", bucketName)
+		eachEntry := strings.Split(res.value, journal.UnitSeparator)
+		for i, v := range eachEntry {
+			keyPairValue := strings.Split(v, journal.FiledSeparator)
+			l := len(keyPairValue)
+			fmt.Printf("index: %d, value: %v, value_length: %v\n", i, keyPairValue, l)
+		}
+
+	}
+}
+
 func getDBBucketValue(db *bolt.DB, bucketName string) {
 	done := make(chan struct {
 		value string
@@ -158,7 +253,7 @@ func getDBBucketValue(db *bolt.DB, bucketName string) {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				keyResult += string(k) + journal.EntrySeparator + string(v) + journal.UnitSeparator
+				keyResult += string(k) + journal.FiledSeparator + string(v) + journal.UnitSeparator
 			}
 			return nil
 		})
@@ -187,7 +282,7 @@ func printDBbucket(data string) {
 	eachEntry := strings.Split(data, journal.UnitSeparator)
 	for _, v := range eachEntry {
 		// if v != "" {
-		keyPairValue := strings.Split(v, journal.EntrySeparator)
+		keyPairValue := strings.Split(v, journal.FiledSeparator)
 
 		r1 := journal.EventLog{LogTimestamp: keyPairValue[0],
 			EventType:    keyPairValue[1],
@@ -204,7 +299,7 @@ func returnDBbucket(data string) []journal.EventLog {
 	var result []journal.EventLog
 
 	for _, v := range eachEntry {
-		keyPairValue := strings.Split(v, journal.EntrySeparator)
+		keyPairValue := strings.Split(v, journal.FiledSeparator)
 
 		r1 := journal.EventLog{LogTimestamp: keyPairValue[0],
 			EventType:    keyPairValue[1],
@@ -229,7 +324,7 @@ func WriteBucketToCSV(db *bolt.DB, bucketName string, csvfile string) error {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				keyResult += string(k) + journal.EntrySeparator + string(v) + journal.UnitSeparator
+				keyResult += string(k) + journal.FiledSeparator + string(v) + journal.UnitSeparator
 			}
 			return nil
 		})
