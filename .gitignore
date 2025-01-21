@@ -1,3 +1,6 @@
+# no file
+*.json
+
 # some testing data format
 *.csv
 *.log
