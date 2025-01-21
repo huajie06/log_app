@@ -16,7 +16,11 @@ func main() {
 		})
 	})
 
-	router.LoadHTMLFiles("/home/hj/apps/log_app/journal/src/event-form.html")
+	htmlDir, err := journal.HtmlDir()
+	if err != nil {
+		panic(err)
+	}
+	router.LoadHTMLFiles(htmlDir)
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "event-form.html", gin.H{"APIRouteForEventForm": "/api/eventlog"})
