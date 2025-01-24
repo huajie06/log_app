@@ -22,7 +22,7 @@ func main() {
 	}
 	router.LoadHTMLFiles(htmlDir)
 
-	router.GET("/abc", func(c *gin.Context) {
+	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "event-form.html", gin.H{"APIRouteForEventForm": "/api/eventlog"})
 	})
 

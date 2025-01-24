@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"log_app/journal"
@@ -40,7 +39,7 @@ func openDB(conn dbConn) (*bolt.DB, error) {
 }
 
 func main() {
-	dpath := "/home/hj/apps/log_app/cmd/journal/journal_event.db"
+	dpath := "/home/hj/apps/log_app/test/journal/journal_event.db"
 	defaultConn := newConn(dpath)
 
 	db, err := openDB(defaultConn)
@@ -49,41 +48,47 @@ func main() {
 	}
 	defer db.Close()
 
-	getDBbucket(db)
+	// getDBbucket(db)
 
 	getDBBucketSize(db, "event-log")
 
-	getDBBucketKeys(db, "event-log")
+	// getDBBucketKeys(db, "event-log")
 
 	// viewDBBucketValueRaw(db, "event-log")
 
 	getDBBucketValue(db, "event-log")
+	fmt.Println("=========================================================")
 
-	// WriteBucketToCSV(db, "event-log", "event-log.csv")
+	WriteBucketToJSON(db, "event-log", "event-log.json")
 
-	// WriteBucketToJSON(db, "event-log", "event-log.json")
 }
 
 func WriteBucketToJSON(db *bolt.DB, bucketName string, outfile string) {
 	done := make(chan struct {
-		value string
+		value []map[string]journal.EventLog
 		err   error
 	})
 
 	go func() {
-		var keyResult string
+		var keyValuerResult []map[string]journal.EventLog
+		var kVal journal.EventLog
 		err := db.View(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				keyResult += string(k) + string(v)
+				err := json.Unmarshal(v, &kVal)
+				if err != nil {
+					fmt.Println("fail to parse database into struct")
+					return err
+				}
+				keyValuerResult = append(keyValuerResult, map[string]journal.EventLog{string(k): kVal})
 			}
 			return nil
 		})
 		done <- struct {
-			value string
+			value []map[string]journal.EventLog
 			err   error
-		}{keyResult, err}
+		}{keyValuerResult, err}
 	}()
 
 	res := <-done
@@ -93,24 +98,21 @@ func WriteBucketToJSON(db *bolt.DB, bucketName string, outfile string) {
 	} else {
 		fmt.Printf("database bucket: %s, has values\n", bucketName)
 
-		procResult := returnDBbucket(res.value)
-		fmt.Println("--------------------")
-		// for _, v := range procResult {
-		// 	fmt.Printf("%+v\n", v)
-		// }
+		for _, v := range res.value {
+			fmt.Println("values are:", v)
+		}
 
 		file, err := os.Create(outfile)
 		if err != nil {
 			fmt.Println("Error creating file:", err)
 			return
 		}
-		defer file.Close() // Ensure the file is closed when the function exits
+		defer file.Close()
 
-		// Convert to JSON and write to the file
 		encoder := json.NewEncoder(file)
-		encoder.SetIndent("", "  ") // Pretty print with indentation
+		encoder.SetIndent("", "  ")
 
-		if err := encoder.Encode(procResult); err != nil {
+		if err := encoder.Encode(res.value); err != nil {
 			fmt.Println("Error encoding JSON:", err)
 			return
 		}
@@ -147,36 +149,6 @@ func getDBbucket(db *bolt.DB) {
 	}
 
 	fmt.Println(res.value)
-}
-
-func getDBBucketSize(db *bolt.DB, bucketName string) {
-	done := make(chan struct {
-		value int
-		err   error
-	})
-
-	go func() {
-		var bucketSize int
-		err := db.View(func(tx *bolt.Tx) error {
-			b := tx.Bucket([]byte(bucketName))
-			c := b.Cursor()
-			for k, _ := c.First(); k != nil; k, _ = c.Next() {
-				bucketSize++
-			}
-			return nil
-		})
-		done <- struct {
-			value int
-			err   error
-		}{bucketSize, err}
-	}()
-
-	res := <-done
-	if res.err != nil {
-		panic(res.err)
-	} else {
-		fmt.Printf("database bucket: %s, has size: %v\n", bucketName, res.value)
-	}
 }
 
 func getDBBucketKeys(db *bolt.DB, bucketName string) {
@@ -228,7 +200,7 @@ func viewDBBucketValueRaw(db *bolt.DB, bucketName string) {
 		done <- struct {
 			value string
 			err   error
-		}{keyResult, err}
+		}{strings.Trim(keyResult, UnitSeparator), err}
 	}()
 
 	res := <-done
@@ -257,76 +229,6 @@ func getDBBucketValue(db *bolt.DB, bucketName string) {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				keyResult += string(k) + string(v)
-			}
-			return nil
-		})
-		done <- struct {
-			value string
-			err   error
-		}{keyResult, err}
-	}()
-
-	res := <-done
-	if res.err != nil {
-		panic(res.err)
-	} else {
-		fmt.Printf("database bucket: %s, has values\n", bucketName)
-		fmt.Println(res.value)
-		// procResult := returnDBbucket(res.value)
-		// fmt.Println("--------------------")
-		// for _, v := range procResult {
-		// 	fmt.Printf("%+v\n", v)
-		// }
-
-	}
-}
-
-func printDBbucket(data string) {
-	eachEntry := strings.Split(data, UnitSeparator)
-	for _, v := range eachEntry {
-		keyPairValue := strings.Split(v, FiledSeparator)
-
-		r1 := journal.EventLog{LogTimestamp: keyPairValue[0],
-			EventType:    keyPairValue[1],
-			EventDate:    keyPairValue[2],
-			EventTime:    keyPairValue[3],
-			EventContent: keyPairValue[4]}
-		fmt.Printf("%+v\n", r1)
-	}
-}
-
-func returnDBbucket(data string) []journal.EventLog {
-	eachEntry := strings.Split(data, UnitSeparator)
-
-	var result []journal.EventLog
-
-	for _, v := range eachEntry {
-		keyPairValue := strings.Split(v, FiledSeparator)
-
-		r1 := journal.EventLog{LogTimestamp: keyPairValue[0],
-			EventType:    keyPairValue[1],
-			EventDate:    keyPairValue[2],
-			EventTime:    keyPairValue[3],
-			EventContent: keyPairValue[4]}
-
-		result = append(result, r1)
-	}
-	return result
-}
-
-func WriteBucketToCSV(db *bolt.DB, bucketName string, csvfile string) error {
-	done := make(chan struct {
-		value string
-		err   error
-	})
-
-	go func() {
-		var keyResult string
-		err := db.View(func(tx *bolt.Tx) error {
-			b := tx.Bucket([]byte(bucketName))
-			c := b.Cursor()
-			for k, v := c.First(); k != nil; k, v = c.Next() {
 				keyResult += string(k) + FiledSeparator + string(v) + UnitSeparator
 			}
 			return nil
@@ -339,35 +241,46 @@ func WriteBucketToCSV(db *bolt.DB, bucketName string, csvfile string) error {
 
 	res := <-done
 	if res.err != nil {
-		fmt.Println("fail to conver to csv")
-		return res.err
+		panic(res.err)
 	} else {
+		fmt.Printf("database bucket: %s, has values\n", bucketName)
 
-		procResult := returnDBbucket(res.value)
-		file, err := os.Create(csvfile)
-		if err != nil {
-			fmt.Println("csv creation fail")
-			return err
+		eachEntry := strings.Split(res.value, UnitSeparator)
+
+		for i, v := range eachEntry {
+			fmt.Printf("index: %d, value:%v\n", i, v)
+			fmt.Println("------------------------------")
 		}
-		defer file.Close()
 
-		writer := csv.NewWriter(file)
-		defer writer.Flush()
-
-		headers := []string{"LogTimestamp", "EventType", "EventDate", "EventTime", "EventContent"}
-		writer.Write(headers)
-
-		for _, v := range procResult {
-			row := []string{
-				v.LogTimestamp,
-				v.EventType,
-				v.EventDate,
-				v.EventTime,
-				v.EventContent,
-			}
-			writer.Write(row)
-		}
-		return nil
 	}
+}
 
+func getDBBucketSize(db *bolt.DB, bucketName string) {
+	done := make(chan struct {
+		value int
+		err   error
+	})
+
+	go func() {
+		var bucketSize int
+		err := db.View(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(bucketName))
+			c := b.Cursor()
+			for k, _ := c.First(); k != nil; k, _ = c.Next() {
+				bucketSize++
+			}
+			return nil
+		})
+		done <- struct {
+			value int
+			err   error
+		}{bucketSize, err}
+	}()
+
+	res := <-done
+	if res.err != nil {
+		panic(res.err)
+	} else {
+		fmt.Printf("database bucket: %s, has size: %v\n", bucketName, res.value)
+	}
 }
