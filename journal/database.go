@@ -41,7 +41,7 @@ func (dbm *DBManager) Close() error {
 	return err
 }
 
-func (m *DBManager) DBput(ctx context.Context, BucketName, Key, Value string) error {
+func (m *DBManager) DBput(ctx context.Context, BucketName string, Key string, Value []byte) error {
 	m.logger.Printf("DBput: bucket=%s, key=%s", BucketName, Key)
 
 	done := make(chan error)
@@ -52,7 +52,7 @@ func (m *DBManager) DBput(ctx context.Context, BucketName, Key, Value string) er
 			if err != nil {
 				return fmt.Errorf("fail to create bucket: %s", BucketName)
 			}
-			if err := b.Put([]byte(Key), []byte(Value)); err != nil {
+			if err := b.Put([]byte(Key), Value); err != nil {
 				return fmt.Errorf("fail to put key-value pair: %w", err)
 			}
 			return nil
@@ -73,6 +73,7 @@ func (m *DBManager) DBput(ctx context.Context, BucketName, Key, Value string) er
 	}
 
 }
+
 func (m *DBManager) DBget(ctx context.Context, BucketName, Key string) (string, error) {
 	m.logger.Printf("DBget: BucketName=%s, Key=%s", BucketName, Key)
 

@@ -2,6 +2,7 @@ package journal
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,17 +11,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // from GenAI tool
-const (
-	// Record separator (RS) for separating entire records
-	EntrySeparator = "\u001E"
-	// Unit separator (US) for separating fields within a record
-	FiledSeparator = "\u001F"
-	// Group separator (GS) for separating items in arrays
-	UnitSeparator = "\u001D"
-)
+// const (
+// 	EntrySeparator = "\u001E"
+// 	FiledSeparator = "\u001F"
+// 	UnitSeparator = "\u001D"
+// )
 
 type EventLog struct {
 	EventType    string `json:"eventType" binding:"required"`
@@ -30,12 +29,12 @@ type EventLog struct {
 	LogTimestamp string `json:"logTimestamp"`
 }
 
-func SerializeLog(e EventLog) (string, string) {
-	dbKey := strings.Join([]string{e.LogTimestamp, e.EventType}, FiledSeparator)
-	dbValue := strings.Join([]string{e.EventDate, e.EventTime, e.EventContent}, FiledSeparator)
+// func SerializeLog(e EventLog) (string, string) {
+// 	dbKey := strings.Join([]string{e.LogTimestamp, e.EventType}, FiledSeparator)
+// 	dbValue := strings.Join([]string{e.EventDate, e.EventTime, e.EventContent}, FiledSeparator)
 
-	return dbKey, dbValue
-}
+// 	return dbKey, dbValue
+// }
 
 func HtmlDir() (string, error) {
 	dir, err := os.Getwd()
@@ -106,7 +105,12 @@ func (m *DBManager) EventLogHandler(c *gin.Context) {
 	defer cancel()
 
 	bucketName := "event-log"
-	dbKey, dbValue := SerializeLog(event)
+	dbKey := event.EventType + bson.NewObjectId().Hex()
+	dbValue, err := json.Marshal(&event)
+	if err != nil {
+		m.logger.Printf("Fail to conver to struct")
+		return
+	}
 
 	if err := m.DBput(ctx, bucketName, dbKey, dbValue); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log event"})

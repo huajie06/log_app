@@ -12,6 +12,11 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+const (
+	FiledSeparator = "\u001F"
+	UnitSeparator  = "\u001D"
+)
+
 type dbConn struct {
 	dbPath  string
 	mode    os.FileMode
@@ -46,7 +51,7 @@ func main() {
 
 	getDBbucket(db)
 
-	// getDBBucketSize(db, "event-log")
+	getDBBucketSize(db, "event-log")
 
 	getDBBucketKeys(db, "event-log")
 
@@ -56,7 +61,7 @@ func main() {
 
 	// WriteBucketToCSV(db, "event-log", "event-log.csv")
 
-	WriteBucketToJSON(db, "event-log", "event-log.json")
+	// WriteBucketToJSON(db, "event-log", "event-log.json")
 }
 
 func WriteBucketToJSON(db *bolt.DB, bucketName string, outfile string) {
@@ -71,14 +76,14 @@ func WriteBucketToJSON(db *bolt.DB, bucketName string, outfile string) {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				keyResult += string(k) + journal.FiledSeparator + string(v) + journal.UnitSeparator
+				keyResult += string(k) + string(v)
 			}
 			return nil
 		})
 		done <- struct {
 			value string
 			err   error
-		}{strings.Trim(keyResult, journal.UnitSeparator), err}
+		}{keyResult, err}
 	}()
 
 	res := <-done
@@ -186,7 +191,7 @@ func getDBBucketKeys(db *bolt.DB, bucketName string) {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, _ := c.First(); k != nil; k, _ = c.Next() {
-				keyResult += string(k) + journal.FiledSeparator + "\n"
+				keyResult += string(k) + "\n"
 			}
 			return nil
 		})
@@ -216,14 +221,14 @@ func viewDBBucketValueRaw(db *bolt.DB, bucketName string) {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				keyResult += string(k) + ":" + string(v) + journal.UnitSeparator
+				keyResult += string(k) + FiledSeparator + string(v) + UnitSeparator
 			}
 			return nil
 		})
 		done <- struct {
 			value string
 			err   error
-		}{strings.Trim(keyResult, journal.UnitSeparator), err}
+		}{keyResult, err}
 	}()
 
 	res := <-done
@@ -231,11 +236,10 @@ func viewDBBucketValueRaw(db *bolt.DB, bucketName string) {
 		panic(res.err)
 	} else {
 		fmt.Printf("database bucket: %s, has values\n", bucketName)
-		eachEntry := strings.Split(res.value, journal.UnitSeparator)
+		eachEntry := strings.Split(res.value, UnitSeparator)
 		for i, v := range eachEntry {
-			keyPairValue := strings.Split(v, journal.FiledSeparator)
-			l := len(keyPairValue)
-			fmt.Printf("index: %d, value: %v, value_length: %v\n", i, keyPairValue, l)
+			keyPairValue := strings.Split(v, FiledSeparator)
+			fmt.Printf("index: %d, value: %v\n", i, keyPairValue)
 		}
 
 	}
@@ -253,14 +257,14 @@ func getDBBucketValue(db *bolt.DB, bucketName string) {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				keyResult += string(k) + journal.FiledSeparator + string(v) + journal.UnitSeparator
+				keyResult += string(k) + string(v)
 			}
 			return nil
 		})
 		done <- struct {
 			value string
 			err   error
-		}{strings.Trim(keyResult, journal.UnitSeparator), err}
+		}{keyResult, err}
 	}()
 
 	res := <-done
@@ -268,21 +272,20 @@ func getDBBucketValue(db *bolt.DB, bucketName string) {
 		panic(res.err)
 	} else {
 		fmt.Printf("database bucket: %s, has values\n", bucketName)
-		printDBbucket(res.value)
-		procResult := returnDBbucket(res.value)
-		fmt.Println("--------------------")
-		for _, v := range procResult {
-			fmt.Printf("%+v\n", v)
-		}
+		fmt.Println(res.value)
+		// procResult := returnDBbucket(res.value)
+		// fmt.Println("--------------------")
+		// for _, v := range procResult {
+		// 	fmt.Printf("%+v\n", v)
+		// }
 
 	}
 }
 
 func printDBbucket(data string) {
-	eachEntry := strings.Split(data, journal.UnitSeparator)
+	eachEntry := strings.Split(data, UnitSeparator)
 	for _, v := range eachEntry {
-		// if v != "" {
-		keyPairValue := strings.Split(v, journal.FiledSeparator)
+		keyPairValue := strings.Split(v, FiledSeparator)
 
 		r1 := journal.EventLog{LogTimestamp: keyPairValue[0],
 			EventType:    keyPairValue[1],
@@ -294,12 +297,12 @@ func printDBbucket(data string) {
 }
 
 func returnDBbucket(data string) []journal.EventLog {
-	eachEntry := strings.Split(data, journal.UnitSeparator)
+	eachEntry := strings.Split(data, UnitSeparator)
 
 	var result []journal.EventLog
 
 	for _, v := range eachEntry {
-		keyPairValue := strings.Split(v, journal.FiledSeparator)
+		keyPairValue := strings.Split(v, FiledSeparator)
 
 		r1 := journal.EventLog{LogTimestamp: keyPairValue[0],
 			EventType:    keyPairValue[1],
@@ -324,14 +327,14 @@ func WriteBucketToCSV(db *bolt.DB, bucketName string, csvfile string) error {
 			b := tx.Bucket([]byte(bucketName))
 			c := b.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				keyResult += string(k) + journal.FiledSeparator + string(v) + journal.UnitSeparator
+				keyResult += string(k) + FiledSeparator + string(v) + UnitSeparator
 			}
 			return nil
 		})
 		done <- struct {
 			value string
 			err   error
-		}{strings.Trim(keyResult, journal.UnitSeparator), err}
+		}{strings.Trim(keyResult, UnitSeparator), err}
 	}()
 
 	res := <-done
