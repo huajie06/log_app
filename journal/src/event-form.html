@@ -280,9 +280,9 @@
         });
 
         // Initialize default values
-        setEventType('cardio');
-        setQuickDate('today');
-        setEventTime('morning');
+        // setEventType('cardio');
+        // setQuickDate('today');
+        // setEventTime('morning');
 
         // Form submission
         document.getElementById('eventForm').addEventListener('submit', async (e) => {
@@ -322,9 +322,9 @@
                     setQuickDate('today');
                     setEventTime('morning');
 
-                    // setTimeout(() => {
-                    //     window.location.reload();
-                    // }, 5000); 
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2500); 
                 } else {
                     messageDiv.textContent = 'Error submitting event. Please try again.';
                     messageDiv.className = 'p-4 rounded-md bg-red-100 text-red-700';
