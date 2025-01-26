@@ -1,6 +1,6 @@
 package main
 
-import "log_app/recap"
+import recap "log_app/test/recap/oldstuff"
 
 func main() {
 	// recap.Recap01()
