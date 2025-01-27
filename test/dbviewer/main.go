@@ -2,35 +2,81 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
+
+	bolt "go.etcd.io/bbolt"
+
 	dv "log_app/dbviewer"
 )
+
+const (
+	letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	keyLength   = 10 // Length of the random key
+	valueLength = 15 // Length of the random value
+)
+
+// randString generates a random string of a given length
+func randString(n int) string {
+	source := rand.NewSource(time.Now().UnixNano())
+	rng := rand.New(source)
+
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rng.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
+// generateRandomPairs generates n random key-value pairs
+func generateRandomPairs(n int) map[string]string {
+	pairs := make(map[string]string)
+	for i := 0; i < n; i++ {
+		key := randString(keyLength)
+		value := randString(valueLength)
+		pairs[key] = value
+	}
+	return pairs
+}
 
 func main() {
 	// /home/hj/apps/log_app/test/journal/journal_event.db
 
-	dbPath := "/home/hj/apps/log_app/test/journal/journal_event.db"
+	dbPath := "test-dbviewer.db"
 
-	m, err := dv.NewDBManager(dbPath)
+	// createDummyDB(dbPath)
+
+	// dbPath := "/home/hj/apps/log_app/test/journal/journal_event.db"
+
+	dv.ViewerWeb(dbPath)
+}
+
+func createDummyDB(dbPath string) {
+	// dbPath := "test-dbviewer.db"
+
+	db, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		fmt.Println("error initiate conn")
+		panic(err)
 	}
 
-	result, err := dv.FetchBucketName(m)
-	if err != nil {
-		fmt.Println("error fetch db conn")
-	}
-	for i, v := range result {
-		fmt.Printf("index: %d, buckename: %v\n", i, v)
-	}
+	buketTest := []string{"abc", "bcd", "xxx", "yyy"}
 
-	bucketName := "event-log"
-	bres, err := dv.FetchBucketKeyVal(m, bucketName)
-	if err != nil {
-		fmt.Println("error fetch bucket: ", err)
-	}
+	pairs := generateRandomPairs(20)
 
-	for k, v := range bres {
-		fmt.Printf("key is :%v, value is :%v\n", k, v)
-	}
+	for _, v := range buketTest {
+		db.Update(func(tx *bolt.Tx) error {
+			b, err := tx.CreateBucketIfNotExists([]byte(v))
+			if err != nil {
+				return fmt.Errorf("fail to create bucket: %s", v)
+			}
 
+			for key, value := range pairs {
+				err := b.Put([]byte(key), []byte(value))
+				if err != nil {
+					return fmt.Errorf("put key-value pair: %w", err)
+				}
+			}
+			return nil
+		})
+	}
 }
