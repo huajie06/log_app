@@ -42,11 +42,11 @@ func generateRandomPairs(n int) map[string]string {
 func main() {
 	// /home/hj/apps/log_app/test/journal/journal_event.db
 
-	dbPath := "test-dbviewer.db"
+	// dbPath := "test-dbviewer.db"
 
 	// createDummyDB(dbPath)
 
-	// dbPath := "/home/hj/apps/log_app/test/journal/journal_event.db"
+	dbPath := "/home/hj/apps/log_app/test/journal/journal_event.db"
 
 	dv.ViewerWeb(dbPath)
 }
@@ -58,6 +58,7 @@ func createDummyDB(dbPath string) {
 	if err != nil {
 		panic(err)
 	}
+	defer db.Close()
 
 	buketTest := []string{"abc", "bcd", "xxx", "yyy"}
 
@@ -73,7 +74,8 @@ func createDummyDB(dbPath string) {
 			for key, value := range pairs {
 				err := b.Put([]byte(key), []byte(value))
 				if err != nil {
-					return fmt.Errorf("put key-value pair: %w", err)
+					fmt.Println("put key-value pair: %w", err)
+					continue
 				}
 			}
 			return nil
