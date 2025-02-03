@@ -1,6 +1,10 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
+# no file
+*.json
+
+# some testing data format
+*.csv
+*.log
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -23,3 +27,57 @@ go.work.sum
 
 # env file
 .env
+
+
+# Vim temporary files
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Vim session
+Session.vim
+Sessionx.vim
+
+# Vim temporary
+.netrwhist
+*~
+
+# Vim persistent undo
+[._]*.un~
+
+# Vim tags
+tags
+tags.*
+
+# Emacs temporary files
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# Emacs auto-save files
+auto-save-list
+tramp
+.\#*
+
+# Emacs eshell files
+/eshell/history
+/eshell/lastdir
+
+# Emacs projectiles files
+.projectile
+
+# Emacs directory configuration
+.dir-locals.el
+
+# Emacs cache directory
+.cache/
+
+# Emacs backup directory
+backup/
+
+# some my db files
+*.db

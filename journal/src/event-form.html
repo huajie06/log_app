@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Submission Form</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Define the .highlight class here */
+        .highlightevendate {
+            color: #2563eb; /* Subtle blue */
+            font-weight: bold; /* Make it stand out */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 flex items-center justify-center">
+    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Submit Event</h1>
+        
+        <form id="eventForm" class="space-y-6">
+            <!-- Event Type Section -->
+            <div>
+                <label for="eventType" class="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                <div class="space-y-2">
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setEventType('cardio')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Cardio
+                        </button>
+
+                        <button type="button" onclick="setEventType('weight')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Weight
+                        </button>
+                        
+                        <button type="button" onclick="setEventType('bothcardioweight')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            CardioWeight
+                        </button>
+
+                        <button type="button" onclick="setEventType('hiit')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            HIIT
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setEventType('bjj')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            BJJ
+                        </button>
+                        <button type="button" onclick="setEventType('other')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            other
+                        </button>
+                    </div>
+
+                    <div id="customEventTypeContainer" class="hidden">
+                        <input type="text" id="customEventType" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter custom event type">
+                    </div>
+                    <button type="button" id="toggleCustomEventType" 
+                        class="text-sm text-blue-600 hover:text-blue-700 focus:outline-none">
+                        Choose another event type
+                    </button>
+                </div>
+                <input type="hidden" id="eventType" required>
+            </div>
+
+            <!-- Event Date Section -->
+            <div>
+                <label id="eventDateLabel" class="block text-sm font-medium text-gray-700 mb-1">Event Date</label>
+                <div class="space-y-2">
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setQuickDate('today')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Today
+                        </button>
+                        <button type="button" onclick="setQuickDate('yesterday')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Yesterday
+                        </button>
+                        <button type="button" onclick="setQuickDate('dayBefore')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Day Before
+                        </button>
+                    </div>
+                    <div id="customDateContainer" class="hidden">
+                        <input type="date" id="customDate" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="button" id="toggleCustomDate" 
+                        class="text-sm text-blue-600 hover:text-blue-700 focus:outline-none">
+                        Choose another date
+                    </button>
+                </div>
+                <input type="hidden" id="selectedDate" required>
+            </div>
+
+            <!-- Event Time Section -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Event Time</label>
+                <div class="space-y-2">
+                    <div class="flex gap-2">
+                        <button type="button" onclick="setEventTime('morning')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Morning
+                        </button>
+                        <button type="button" onclick="setEventTime('afternoon')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Afternoon
+                        </button>
+                        <button type="button" onclick="setEventTime('night')"
+                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Night
+                        </button>
+                    </div>
+                    <div id="customEventTimeContainer" class="hidden">
+                        <input type="time" id="customEventTime" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="button" id="toggleCustomEventTime" 
+                        class="text-sm text-blue-600 hover:text-blue-700 focus:outline-none">
+                        Choose specific time
+                    </button>
+                </div>
+                <input type="hidden" id="eventTime" required>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Event Content</label>
+                <textarea id="eventContent" required rows="4" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Describe the event..."></textarea>
+            </div>
+
+            <button type="submit" 
+                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                Submit Event
+            </button>
+        </form>
+
+        <div id="response" class="mt-4 hidden">
+            <div class="p-4 rounded-md"></div>
+        </div>
+    </div>
+
+    <script>
+
+        // JavaScript to add today's date to the label
+        document.addEventListener('DOMContentLoaded', () => {
+            const label = document.getElementById('eventDateLabel');
+            const now = new Date();
+
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const todayMessage = `Today is <span class="highlightevendate">${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}, ${dayNames[now.getDay()]}</span>`;
+
+            label.innerHTML = `Event Date (${todayMessage})`;
+        });
+
+        // Event Type handling
+        function setEventType(type) {
+            document.getElementById('eventType').value = type;
+            document.getElementById('customEventTypeContainer').classList.add('hidden');
+                    
+        // Update button styles
+        document.querySelectorAll('button[onclick^="setEventType"]').forEach(btn => {
+        // Extract the exact type from onclick attribute
+        const buttonType = btn.getAttribute('onclick').match(/setEventType\('(.+?)'\)/)?.[1];
+        
+        if (buttonType === type) {  // Exact match instead of includes()
+            btn.classList.add('bg-blue-100', 'border-blue-500', 'border-2');
+        } else {
+            btn.classList.remove('bg-blue-100', 'border-blue-500', 'border-2');
+        }
+            });
+        }
+
+        document.getElementById('toggleCustomEventType').addEventListener('click', () => {
+            const container = document.getElementById('customEventTypeContainer');
+            container.classList.toggle('hidden');
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('customEventType').focus();
+                // Reset quick selection styling
+                document.querySelectorAll('button[onclick^="setEventType"]').forEach(btn => {
+                    btn.classList.remove('bg-blue-100', 'border-blue-500', 'border-2');
+                });
+            }
+        });
+
+        document.getElementById('customEventType').addEventListener('input', (e) => {
+            document.getElementById('eventType').value = e.target.value;
+        });
+
+        // Event Time handling
+        function setEventTime(time) {
+            document.getElementById('eventTime').value = time;
+            document.getElementById('customEventTimeContainer').classList.add('hidden');
+            
+            // Update button styles
+            document.querySelectorAll('button[onclick^="setEventTime"]').forEach(btn => {
+                if (btn.getAttribute('onclick').includes(time)) {
+                    btn.classList.add('bg-blue-100', 'border-blue-500', 'border-2');
+                } else {
+                    btn.classList.remove('bg-blue-100', 'border-blue-500', 'border-2');
+                }
+            });
+        }
+
+        document.getElementById('toggleCustomEventTime').addEventListener('click', () => {
+            const container = document.getElementById('customEventTimeContainer');
+            container.classList.toggle('hidden');
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('customEventTime').focus();
+                // Reset quick selection styling
+                document.querySelectorAll('button[onclick^="setEventTime"]').forEach(btn => {
+                    btn.classList.remove('bg-blue-100', 'border-blue-500', 'border-2');
+                });
+            }
+        });
+
+        document.getElementById('customEventTime').addEventListener('input', (e) => {
+            document.getElementById('eventTime').value = e.target.value;
+        });
+
+        // Date handling
+        function formatDate(date) {
+            return `${date.getFullYear()}_${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function setQuickDate(type) {
+            const today = new Date();
+            let selectedDate;
+
+            switch(type) {
+                case 'today':
+                    selectedDate = today;
+                    break;
+                case 'yesterday':
+                    selectedDate = new Date(today);
+                    selectedDate.setDate(today.getDate() - 1);
+                    break;
+                case 'dayBefore':
+                    selectedDate = new Date(today);
+                    selectedDate.setDate(today.getDate() - 2);
+                    break;
+            }
+
+            document.getElementById('selectedDate').value = formatDate(selectedDate);
+            document.getElementById('customDateContainer').classList.add('hidden');
+            
+            // Update button styles
+            document.querySelectorAll('button[onclick^="setQuickDate"]').forEach(btn => {
+                if (btn.getAttribute('onclick').includes(type)) {
+                    btn.classList.add('bg-blue-100', 'border-blue-500', 'border-2');
+                } else {
+                    btn.classList.remove('bg-blue-100', 'border-blue-500', 'border-2');
+                }
+            });
+        }
+
+        document.getElementById('toggleCustomDate').addEventListener('click', () => {
+            const container = document.getElementById('customDateContainer');
+            container.classList.toggle('hidden');
+            if (!container.classList.contains('hidden')) {
+                document.getElementById('customDate').focus();
+                // Reset quick selection styling
+                document.querySelectorAll('button[onclick^="setQuickDate"]').forEach(btn => {
+                    btn.classList.remove('bg-blue-100', 'border-blue-500', 'border-2');
+                });
+            }
+        });
+
+        document.getElementById('customDate').addEventListener('change', (e) => {
+            if (e.target.value) {
+                const date = new Date(e.target.value);
+                document.getElementById('selectedDate').value = formatDate(date);
+            }
+        });
+
+        // Initialize default values
+        // setEventType('cardio');
+        // setQuickDate('today');
+        // setEventTime('morning');
+
+        // Form submission
+        document.getElementById('eventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+
+            const formData = {
+                eventType: document.getElementById('eventType').value,
+                eventDate: document.getElementById('selectedDate').value,
+                eventTime: document.getElementById('eventTime').value,
+                eventContent: document.getElementById('eventContent').value,
+                logTimestamp: timestamp
+            };
+
+            console.log('FormData:', formData);
+
+            try {
+                const response = await fetch('{{ .APIRouteForEventForm }}', {  // Replace with your actual API endpoint
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const responseDiv = document.getElementById('response');
+                responseDiv.classList.remove('hidden');
+                const messageDiv = responseDiv.querySelector('div');
+
+                if (response.ok) {
+                    messageDiv.textContent = 'Event submitted successfully! This page will refresh in 3 sec.';
+                    messageDiv.className = 'p-4 rounded-md bg-green-100 text-green-700';
+                    document.getElementById('eventForm').reset();
+                    setEventType('cardio');
+                    setQuickDate('today');
+                    setEventTime('morning');
+
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2500); 
+                } else {
+                    messageDiv.textContent = 'Error submitting event. Please try again.';
+                    messageDiv.className = 'p-4 rounded-md bg-red-100 text-red-700';
+                }
+            } catch (error) {
+                const responseDiv = document.getElementById('response');
+                responseDiv.classList.remove('hidden');
+                const messageDiv = responseDiv.querySelector('div');
+                messageDiv.textContent = 'Network error. Please try again.';
+                messageDiv.className = 'p-4 rounded-md bg-red-100 text-red-700';
+            }
+        });
+    </script>
+</body>
+</html>
